@@ -12,13 +12,12 @@ import (
 	//_ "github.com/sluggard/myfile/statik" // TODO: Replace with the absolute import path
 
 	"github.com/kataras/iris/v12"
+	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sluggard/poc/application/controller"
 	"github.com/sluggard/poc/config"
-	"github.com/sluggard/poc/model"
-	//"github.com/sluggard/myfile/store"
 )
 
 // HttpServer
@@ -79,23 +78,6 @@ func (s *HttpServer) Stop() {
 }
 
 func (s *HttpServer) _Init() error {
-	// err := libs.InitConfig(s.ConfigPath)
-	// if err != nil {
-	// 	logging.ErrorLogger.Errorf("系统配置初始化失败:", err)
-	// 	return err
-	// }
-	// if libs.Config.Cache.Driver == "redis" {
-	// 	cache.InitRedisCluster(libs.GetRedisUris(), libs.Config.Redis.Password)
-	// }
-	var err error
-	// if s.Store, err = store.New(s.Config.Stroe.DataRoot); err != nil {
-	// 	log.Error(err.Error())
-	// 	return err
-	// }
-	if err = model.Init(); err != nil {
-		log.Error(err.Error())
-		return err
-	}
 	s.RouteInit()
 	return nil
 }
@@ -133,7 +115,7 @@ func (s *HttpServer) RouteInit() {
 	app.Options("/*", controller.Cors)
 	// app.Party("/*", controller.Cors).AllowMethods(iris.MethodOptions)
 	app.UseGlobal(controller.Cors)
-	app.Use(AuthRequired, sess.Handler())
+	//app.Use(AuthRequired, sess.Handler())
 	// app.Use(sess.Handler())
 	// statikFS, err := fs.New()
 	// if err == nil {
@@ -141,12 +123,9 @@ func (s *HttpServer) RouteInit() {
 	// } else {
 	// 	fmt.Printf("err: %v\n", err)
 	// }
-	// mvc.New(app.Party(s.Config.Server.ContextPath + "/test")).Handle(new(controller.TestController))
-	// mvc.New(app.Party(s.Config.Server.ContextPath + "/user")).Handle(controller.NewUserController())
-	// mvc.New(app.Party(s.Config.Server.ContextPath + "/library")).Handle(controller.NewLibraryController())
-	// mvc.New(app.Party(s.Config.Server.ContextPath + "/folder")).Handle(controller.NewFolderController())
-	// mvc.New(app.Party(s.Config.Server.ContextPath + "/file")).Handle(controller.NewFileController(s.Store))
+	mvc.New(app.Party(s.Config.Server.ContextPath + "/")).Handle(controller.NewHandlerController())
 	for _, route := range app.APIBuilder.GetRoutes() {
 		log.Info(route)
 	}
+	go controller.NewHandlerController().GetScan(nil)
 }

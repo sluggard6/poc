@@ -15,6 +15,7 @@
 # vendor/
 
 .DS_Store
+__debug_bin
 
 poc*
 
