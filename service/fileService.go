@@ -1,11 +1,15 @@
 package service
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/sluggard/poc/util"
 	"github.com/spf13/viper"
 )
@@ -15,6 +19,7 @@ type FileService interface {
 	SendRemoteFile(localPath string, remotePath string) error
 	SaveFile(reader io.Reader, name string, host string) error
 	LoadStringFile(name string, host string) (string, error)
+	SearchFile(hosts []string, fileName string, prop string, propValue string, remote bool) []ReadProp
 }
 
 var fileService = newFileImpl()
@@ -83,4 +88,51 @@ func (f *fileImpl) ReadProp(path string) *viper.Viper {
 	prop.SetConfigType("properties")
 	prop.ReadInConfig()
 	return prop
+}
+
+func (f *fileImpl) SearchFile(hosts []string, fileName string, prop string, propValue string, remote bool) []ReadProp {
+	if remote {
+		return searchRemoteFile(hosts, fileName, prop, propValue)
+	} else {
+		return searchLocalFile(hosts, fileName, prop, propValue)
+	}
+}
+
+type ReadProp struct {
+	Host  string
+	Prop  string
+	Value string
+}
+
+func searchLocalFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
+	user, err := user.Current()
+	home := ""
+	ret := make([]ReadProp, 0)
+	if err == nil {
+		home = user.HomeDir
+	}
+	for _, host := range hosts {
+		viper := viper.New()
+		log.Debugf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName)
+		dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		viper.SetConfigFile(name)
+		// viper.SetConfigName("config")
+		viper.SetConfigType("ini")
+		viper.AddConfigPath(dir)
+		err := viper.ReadInConfig() // 查找并读取配置文件
+		if err != nil {             // 处理读取配置文件的错误
+			panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		}
+		for _, key := range viper.AllKeys() {
+			log.Debug(key)
+		}
+		if strings.Contains(viper.GetString(prop), propValue) {
+			ret = append(ret, ReadProp{Host: host, Prop: prop, Value: viper.GetString(prop)})
+		}
+	}
+	return ret
+}
+
+func searchRemoteFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
+	return make([]ReadProp, 0)
 }

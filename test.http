@@ -9,11 +9,17 @@ GET {{host}}/scan
 ###查询缓存的host
 GET {{host}}/hosts
 
+###查找对应属性
+POST {{host}}/search
+
+{"fileName":"\\root\\config1.ini", "prop":"prop1", "propValue":"ab"}
+
 ###获取文件
 GET {{host}}/file?host=192.168.2.1
 
 ###保存文件
 PUT {{host}}/file
+
 {"host":"192.168.2.1", "file":"filecontext"}
 
 ###发送文件

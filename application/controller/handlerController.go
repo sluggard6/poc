@@ -52,10 +52,10 @@ func (c *HandlerController) GetScan(ctx iris.Context) *HttpResult {
 				hosts = append(hosts, c.findIps(ipnet)...)
 			}
 		}
-		if len(hosts) > 0 {
-			util.Hosts = hosts
-		}
-		log.Debug(util.Hosts)
+		// if len(hosts) > 0 {
+		// 	util.Hosts = hosts
+		// }
+		log.Debug(hosts)
 	}
 
 	return Success(util.Hosts)
@@ -82,7 +82,7 @@ func (c *HandlerController) GetFile(ctx iris.Context) *HttpResult {
 	host := ctx.Params().Get("host")
 	wd, _ := os.Getwd()
 	localPath := wd + string(filepath.Separator) + "." + host + string(filepath.Separator) + util.FileName
-	remotePath := fmt.Sprintf("%s@%s:%s", config.GetConfig().AccountInfo.Username, host, util.ConfigFilePath)
+	remotePath := fmt.Sprintf("%s@%s:%s", config.GetConfig().DevicesInfo.Username, host, util.ConfigFilePath)
 	dir, _ := filepath.Split(localPath)
 	if err := os.MkdirAll(dir, 0744); err != nil {
 		return FailedMessage(err.Error())
@@ -109,4 +109,27 @@ func scanIp(input string, localIp string) []string {
 		// }
 	}
 	return s
+}
+
+func (c *HandlerController) PostSearch(ctx iris.Context) *HttpResult {
+	// editLibraryForm := struct {
+	// 	Id   uint   `json:"id"`
+	// 	Name string `json:"name"`
+	// }{}
+	searchForm := struct {
+		FileName  string `json:"fileName"`
+		Prop      string `json:"prop"`
+		PropValue string `json:"propValue"`
+	}{}
+	if err := ctx.ReadJSON(&searchForm); err != nil {
+		return FailedCodeMessage(PARAM_ERROR, err.Error())
+	}
+	res := c.fileService.SearchFile(
+		util.Filter(util.Hosts, func(h util.Host) bool {
+			return h.State == 1
+		}, func(h util.Host) string {
+			return h.Ip
+		}),
+		searchForm.FileName, searchForm.Prop, searchForm.PropValue, config.GetConfig().RunConfig.Remote)
+	return Success(res)
 }

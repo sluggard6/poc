@@ -71,3 +71,13 @@ func isBlankString(s string) bool {
 func Md5String(s string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
+
+func Filter[T any, R any](slice []T, f func(T) bool, r func(T) R) []R {
+	var n []R
+	for _, e := range slice {
+		if f(e) {
+			n = append(n, r(e))
+		}
+	}
+	return n
+}

@@ -1,6 +1,11 @@
 package util
 
-var Hosts []string
+var Hosts []Host
 
 const FileName = "test.properties"
 const ConfigFilePath = "/root/test.properties"
+
+type Host struct {
+	Ip    string
+	State int
+}

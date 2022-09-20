@@ -6,7 +6,6 @@ package application
 import (
 	stdContext "context"
 	"fmt"
-	"strings"
 	"time"
 
 	//_ "github.com/sluggard/myfile/statik" // TODO: Replace with the absolute import path
@@ -14,18 +13,18 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
-	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sluggard/poc/application/controller"
 	"github.com/sluggard/poc/config"
+	"github.com/sluggard/poc/util"
 )
 
 // HttpServer
 type HttpServer struct {
-	Config  config.Config
-	App     *iris.Application
-	crontab *cron.Cron
+	Config config.Config
+	App    *iris.Application
+	// crontab *cron.Cron
 	// Store  store.Store
 	Status bool
 }
@@ -74,7 +73,7 @@ func (s *HttpServer) Stop() {
 		time.Sleep(3 * time.Second)
 		ctx, cancel := stdContext.WithTimeout(stdContext.TODO(), 3*time.Second)
 		defer cancel()
-		s.crontab.Stop()
+		// s.crontab.Stop()
 		s.App.Shutdown(ctx)
 		s.Status = false
 	}()
@@ -82,47 +81,25 @@ func (s *HttpServer) Stop() {
 
 func (s *HttpServer) _Init() error {
 	s.RouteInit()
-	go controller.NewHandlerController().GetScan(nil)
+	// go controller.NewHandlerController().GetScan(nil)
 	// 新建一个定时任务对象
 	// 根据cron表达式进行时间调度，cron可以精确到秒，大部分表达式格式也是从秒开始。
 	//crontab := cron.New()  默认从分开始进行时间调度
-	s.crontab = cron.New(cron.WithSeconds()) //精确到秒
+	// s.crontab = cron.New(cron.WithSeconds()) //精确到秒
 	//定义定时器调用的任务函数
-	//定时任务
-	spec := "*/30 * * * * ?" //cron表达式，每五秒一次
-	task := func() {
-		//fmt.Println("hello world", time.Now())
-		go controller.NewHandlerController().GetScan(nil)
+	// //定时任务
+	// spec := "*/30 * * * * ?" //cron表达式，每五秒一次
+	// task := func() {
+	// 	//fmt.Println("hello world", time.Now())
+	// 	go controller.NewHandlerController().GetScan(nil)
+	// }
+	// s.crontab.AddFunc(spec, task)
+	// s.crontab.Start()
+	util.Hosts = make([]util.Host, 0)
+	for _, ip := range config.GetConfig().DevicesInfo.Hosts {
+		util.Hosts = append(util.Hosts, util.Host{Ip: ip, State: 1})
 	}
-	s.crontab.AddFunc(spec, task)
-	s.crontab.Start()
 	return nil
-}
-
-// AuthRequired 登录验证
-func AuthRequired(ctx iris.Context) {
-	// iris.CookieSameSite = iris.SameSiteNoneMode
-	log.Debug(ctx.Request().Method, "  ", ctx.Request().RequestURI)
-	// log.Debug(ctx.RequestPath(false))
-	// session := sess.Start(ctx, iris.CookieSameSite(iris.SameSiteNoneMode))
-	// ctx.addCookieOption
-	session := sess.Start(ctx)
-	// log.Debug(session)
-	// log.Debug(sess.GetCookieOptions())
-	path := config.GetConfig().Server.ContextPath
-	//被忽略的url直接通过
-	for _, v := range ignoreAuthUrl {
-		if strings.HasPrefix(ctx.RequestPath(false), path+v) {
-			// if path+v == ctx.RequestPath(false) {
-			ctx.Next()
-			return
-		}
-	}
-	if auth, _ := session.GetBoolean("authenticated"); !auth {
-		ctx.StatusCode(iris.StatusForbidden)
-		return
-	}
-	ctx.Next()
 }
 
 // RouteInit 初始化路由

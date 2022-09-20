@@ -3,13 +3,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 type Config struct {
 	Server      Server
-	AccountInfo AccountInfo
-	Stroe       Store
+	DevicesInfo DevicesInfo
+	RunConfig   RunConfig
 }
 
 type Server struct {
@@ -18,24 +18,18 @@ type Server struct {
 	ContextPath string
 }
 
-type Store struct {
-	DataRoot string
+type RunConfig struct {
+	Remote bool
 }
 
-type AccountInfo struct {
+type DevicesInfo struct {
 	Username string
 	Password string
+	Hosts    []string
 }
 
-type dbType string
-type fileType string
-
 const (
-	DefaultConfigPath string   = "conf/application.json"
-	Mysql             dbType   = "mysql"
-	Sqlite            dbType   = "sqlite"
-	Yml               fileType = "yml"
-	Json              fileType = "json"
+	DefaultConfigPath string = "conf/config.json"
 )
 
 var config Config = Config{
@@ -44,12 +38,13 @@ var config Config = Config{
 		Port:        5678,
 		ContextPath: "",
 	},
-	AccountInfo: AccountInfo{
+	DevicesInfo: DevicesInfo{
 		Username: "root",
 		Password: "password",
+		Hosts:    []string{"192.168.1.2", "192.168.1.3", "192.168.1.4", "192.168.1.5", "192.168.1.6"},
 	},
-	Stroe: Store{
-		DataRoot: "file-data",
+	RunConfig: RunConfig{
+		Remote: false,
 	},
 }
 
@@ -63,7 +58,7 @@ func New(config string) Config {
 }
 
 func LoadConfing(path string) Config {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Printf("unable to decode into struct, %v", err)
 	} else {
