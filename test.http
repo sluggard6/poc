@@ -1,44 +1,26 @@
 #@host = http://81.68.125.115:5678
 @host = http://localhost:5678
 
-@cpath = ""
-
-###scan
-GET {{host}}{{cpath}}/scan
-
-###login
-POST {{host}}{{cpath}}/user/login
-
-{"username":"admin","password":"111111"}
-
-###resetPassword
-POST {{host}}{{cpath}}/user/resetpass
-
-{"oldpass":"111111","newpass":"111111"}
-
-###register
-POST {{host}}{{cpath}}/user/register
-
-{"username":"admin","password":"111111"}
-
-###userLike
-GET {{host}}{{cpath}}/user/like?queryString=a
 
 
-###upload
-POST {{host}}{{cpath}}/file/upload?folderId=4 HTTP/1.1
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryL3uJ3c0mfMKL94BR
+###查询host接口
+GET {{host}}/scan
 
-------WebKitFormBoundaryL3uJ3c0mfMKL94BR
-Content-Disposition: form-data; name="file"; filename="test.png"
-Content-Type: application/octet-stream
+###查询缓存的host
+GET {{host}}/hosts
 
-< test.png
-------WebKitFormBoundaryL3uJ3c0mfMKL94BR--
+###获取文件
+GET {{host}}/file?host=192.168.2.1
 
-###checkLibraryName false
-GET {{host}}{{cpath}}/library/check?name=Default Library
+###保存文件
+PUT {{host}}/file
+{"host":"192.168.2.1", "file":"filecontext"}
+
+###发送文件
+POST {{host}}/file?host=192.168.2.1
+
+###全部发送
+POST {{host}}/all
+{"file":"filecontext"}
 
 
-###checkLibraryName true
-GET {{host}}{{cpath}}/library/check?name=test

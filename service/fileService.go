@@ -7,6 +7,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/sluggard/poc/util"
+	"github.com/spf13/viper"
 )
 
 type FileService interface {
@@ -35,13 +36,17 @@ func newFileImpl() *fileImpl {
 
 func (f *fileImpl) LoadRemoteFile(localPath string, remotePath string) error {
 	cmd := "scp " + localPath + " " + remotePath
-	f.cs.Run(cmd)
+	if _, _, err := f.cs.Run(cmd); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (f *fileImpl) SendRemoteFile(localPath string, remotePath string) error {
 	cmd := "scp " + remotePath + " " + localPath
-	f.cs.Run(cmd)
+	if _, _, err := f.cs.Run(cmd); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -70,4 +75,12 @@ func (f *fileImpl) LoadStringFile(name string, host string) (string, error) {
 	} else {
 		return string(bs), nil
 	}
+}
+
+func (f *fileImpl) ReadProp(path string) *viper.Viper {
+	prop := viper.New()
+	prop.SetConfigFile(path)
+	prop.SetConfigType("properties")
+	prop.ReadInConfig()
+	return prop
 }

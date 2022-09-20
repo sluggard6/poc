@@ -14,6 +14,7 @@ import (
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
+	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/sluggard/poc/application/controller"
@@ -22,8 +23,9 @@ import (
 
 // HttpServer
 type HttpServer struct {
-	Config config.Config
-	App    *iris.Application
+	Config  config.Config
+	App     *iris.Application
+	crontab *cron.Cron
 	// Store  store.Store
 	Status bool
 }
@@ -72,6 +74,7 @@ func (s *HttpServer) Stop() {
 		time.Sleep(3 * time.Second)
 		ctx, cancel := stdContext.WithTimeout(stdContext.TODO(), 3*time.Second)
 		defer cancel()
+		s.crontab.Stop()
 		s.App.Shutdown(ctx)
 		s.Status = false
 	}()
@@ -79,6 +82,20 @@ func (s *HttpServer) Stop() {
 
 func (s *HttpServer) _Init() error {
 	s.RouteInit()
+	go controller.NewHandlerController().GetScan(nil)
+	// 新建一个定时任务对象
+	// 根据cron表达式进行时间调度，cron可以精确到秒，大部分表达式格式也是从秒开始。
+	//crontab := cron.New()  默认从分开始进行时间调度
+	s.crontab = cron.New(cron.WithSeconds()) //精确到秒
+	//定义定时器调用的任务函数
+	//定时任务
+	spec := "*/30 * * * * ?" //cron表达式，每五秒一次
+	task := func() {
+		//fmt.Println("hello world", time.Now())
+		go controller.NewHandlerController().GetScan(nil)
+	}
+	s.crontab.AddFunc(spec, task)
+	s.crontab.Start()
 	return nil
 }
 
@@ -127,5 +144,5 @@ func (s *HttpServer) RouteInit() {
 	for _, route := range app.APIBuilder.GetRoutes() {
 		log.Info(route)
 	}
-	go controller.NewHandlerController().GetScan(nil)
+
 }

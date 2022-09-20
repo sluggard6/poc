@@ -7,9 +7,9 @@ import (
 )
 
 type Config struct {
-	Server   Server
-	Database Database
-	Stroe    Store
+	Server      Server
+	AccountInfo AccountInfo
+	Stroe       Store
 }
 
 type Server struct {
@@ -22,9 +22,7 @@ type Store struct {
 	DataRoot string
 }
 
-type Database struct {
-	Type     dbType
-	Url      string
+type AccountInfo struct {
 	Username string
 	Password string
 }
@@ -46,11 +44,9 @@ var config Config = Config{
 		Port:        5678,
 		ContextPath: "",
 	},
-	Database: Database{
-		Type:     Sqlite,
-		Url:      "myfile.db",
-		Username: "",
-		Password: "",
+	AccountInfo: AccountInfo{
+		Username: "root",
+		Password: "password",
 	},
 	Stroe: Store{
 		DataRoot: "file-data",
