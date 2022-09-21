@@ -2,13 +2,12 @@ package controller
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/kataras/iris/v12"
-	log "github.com/sirupsen/logrus"
 	"github.com/sluggard/poc/config"
 	"github.com/sluggard/poc/service"
 	"github.com/sluggard/poc/util"
@@ -38,41 +37,47 @@ func (c *HandlerController) PostCommand(ctx iris.Context) *HttpResult {
 }
 
 func (c *HandlerController) GetScan(ctx iris.Context) *HttpResult {
-	addrs, err := net.InterfaceAddrs()
-	hosts := make([]string, 0)
-	if err != nil {
-		return FailedMessage(err.Error())
-	}
-	//获取本机地址
-	for _, address := range addrs {
+	// addrs, err := net.InterfaceAddrs()
+	// hosts := make([]string, 0)
+	// if err != nil {
+	// 	return FailedMessage(err.Error())
+	// }
+	// //获取本机地址
+	// for _, address := range addrs {
 
-		// 检查ip地址判断是否回环地址
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				hosts = append(hosts, c.findIps(ipnet)...)
-			}
+	// 	// 检查ip地址判断是否回环地址
+	// 	if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+	// 		if ipnet.IP.To4() != nil {
+	// 			hosts = append(hosts, c.findIps(ipnet)...)
+	// 		}
+	// 	}
+	// 	// if len(hosts) > 0 {
+	// 	// 	util.Hosts = hosts
+	// 	// }
+	// 	log.Debug(hosts)
+	// }
+	for _, host := range util.Hosts {
+		cmd := fmt.Sprintf("nmap -sV -p 22 -T4 --open %s --script=ssh-run --script-args=\"ssh-run.cmd=echo \"SUCCESSCOMMAND\", ssh-run.username=%s, ssh-run.password=%s\"", host.Ip, config.GetConfig().DevicesInfo.Username, config.GetConfig().DevicesInfo.Password)
+		if stdout, _, err := c.commandService.Run(cmd); err == nil {
+			strings.Contains(stdout, "SUCCESSCOMMAND")
+			host.State = 1
 		}
-		// if len(hosts) > 0 {
-		// 	util.Hosts = hosts
-		// }
-		log.Debug(hosts)
 	}
-
 	return Success(util.Hosts)
 }
 
-func (c *HandlerController) findIps(ipnet *net.IPNet) []string {
-	cmd := "nmap -sP " + ipnet.IP.String() + "/24"
-	// cmd = "nmap -sP " + "192.168.2.183" + "/24"
-	log.Debug(cmd)
-	if stdOut, _, err := c.commandService.Run(cmd); err == nil {
-		log.Debug(stdOut)
-		// util.Hosts = scanIp(stdOut, ipnet.IP.String())
-		return scanIp(stdOut, ipnet.IP.String())
-	} else {
-		return make([]string, 0)
-	}
-}
+// func (c *HandlerController) findIps(ipnet *net.IPNet) []string {
+// 	cmd := "nmap -sP " + ipnet.IP.String() + "/24"
+// 	// cmd = "nmap -sP " + "192.168.2.183" + "/24"
+// 	log.Debug(cmd)
+// 	if stdOut, _, err := c.commandService.Run(cmd); err == nil {
+// 		log.Debug(stdOut)
+// 		// util.Hosts = scanIp(stdOut, ipnet.IP.String())
+// 		return scanIp(stdOut, ipnet.IP.String())
+// 	} else {
+// 		return make([]string, 0)
+// 	}
+// }
 
 func (c *HandlerController) GetHosts(ctx iris.Context) *HttpResult {
 	return Success(util.Hosts)

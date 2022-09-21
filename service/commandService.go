@@ -3,6 +3,8 @@ package service
 import (
 	"bytes"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type CommandService interface {
@@ -20,6 +22,7 @@ type commandImpl struct {
 }
 
 func (c *commandImpl) Run(command string) (string, string, error) {
+	log.Debug(command)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := exec.Command(c.ShellToUse, "-c", command)

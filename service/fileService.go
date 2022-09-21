@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
+	"github.com/sluggard/poc/config"
 	"github.com/sluggard/poc/util"
 	"github.com/spf13/viper"
 )
@@ -61,7 +61,7 @@ func (f *fileImpl) SaveFile(reader io.Reader, name string, host string) error {
 	util.SaveAndSha(reader, tmpFile)
 	// var fileName = fs.Root + string(filepath.Separator) + strings.Join(makeFilePath(hexString), string(filepath.Separator)) + filepath.Ext(name)
 	var fileName = "." + host + string(filepath.Separator) + filepath.Ext(name)
-	logrus.Debugf("store file : %s", fileName)
+	log.Debugf("store file : %s", fileName)
 	dir, _ := filepath.Split(f.Root + string(filepath.Separator) + fileName)
 	if err := os.MkdirAll(dir, 0744); err != nil {
 		return err
@@ -93,7 +93,7 @@ func (f *fileImpl) ReadProp(path string) *viper.Viper {
 
 func (f *fileImpl) SearchFile(hosts []string, fileName string, prop string, propValue string, remote bool) []ReadProp {
 	if remote {
-		return searchRemoteFile(hosts, fileName, prop, propValue)
+		return f.searchRemoteFile(hosts, fileName, prop, propValue)
 	} else {
 		return searchLocalFile(hosts, fileName, prop, propValue)
 	}
@@ -132,13 +132,23 @@ func searchLocalFile(hosts []string, fileName string, prop string, propValue str
 	return ret
 }
 
-func searchRemoteFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
-	return make([]ReadProp, 0)
+func (f *fileImpl) searchRemoteFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
+	home, err := getHome()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error get home: %s \n", err))
+	}
+	for _, ip := range hosts {
+		dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName))
+		os.MkdirAll(dir, 0744)
+		cmd := fmt.Sprintf("sshpaas -p %s scp -rf %s@%s:%s %s", config.GetConfig().DevicesInfo.Password, config.GetConfig().DevicesInfo.Username, ip, fileName, dir+name)
+		f.cs.Run(cmd)
+	}
+	return searchLocalFile(hosts, fileName, prop, propValue)
 }
 
 func (f *fileImpl) UpdateProp(hosts []string, fileName string, prop string, propValue string, remote bool) error {
 	if remote {
-		return updateRemoteProp(hosts, fileName, prop, propValue)
+		return f.updateRemoteProp(hosts, fileName, prop, propValue)
 	} else {
 		return updateLocalProp(hosts, fileName, prop, propValue)
 	}
@@ -174,7 +184,18 @@ func updateLocalProp(hosts []string, fileName string, prop string, propValue str
 	return nil
 }
 
-func updateRemoteProp(hosts []string, fileName string, prop string, propValue string) error {
+func (f *fileImpl) updateRemoteProp(hosts []string, fileName string, prop string, propValue string) error {
+	updateLocalProp(hosts, fileName, prop, propValue)
+	home, err := getHome()
+	if err != nil {
+		// panic(fmt.Errorf("Fatal error get home: %s \n", err))
+		return err
+	}
+	for _, ip := range hosts {
+		filePaht := fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName)
+		cmd := fmt.Sprintf("sshpaas -p %s scp -rf %s %s@%s:%s", config.GetConfig().DevicesInfo.Password, filePaht, config.GetConfig().DevicesInfo.Username, ip, fileName)
+		f.cs.Run(cmd)
+	}
 	return nil
 }
 
