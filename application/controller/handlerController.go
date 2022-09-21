@@ -133,3 +133,20 @@ func (c *HandlerController) PostSearch(ctx iris.Context) *HttpResult {
 		searchForm.FileName, searchForm.Prop, searchForm.PropValue, config.GetConfig().RunConfig.Remote)
 	return Success(res)
 }
+
+func (c *HandlerController) PostUpdate(ctx iris.Context) *HttpResult {
+	updateForm := struct {
+		Hosts     []string `json:hosts`
+		FileName  string   `json:fileName`
+		Prop      string   `json:prop`
+		PropValue string   `json:propValue`
+	}{}
+	if err := ctx.ReadJSON(&updateForm); err != nil {
+		return FailedCodeMessage(PARAM_ERROR, err.Error())
+	}
+	if err := c.fileService.UpdateProp(updateForm.Hosts, updateForm.FileName, updateForm.Prop, updateForm.PropValue, config.GetConfig().RunConfig.Remote); err == nil {
+		return Success(updateForm.Hosts)
+	} else {
+		return FailedMessage(err.Error())
+	}
+}

@@ -20,6 +20,7 @@ type FileService interface {
 	SaveFile(reader io.Reader, name string, host string) error
 	LoadStringFile(name string, host string) (string, error)
 	SearchFile(hosts []string, fileName string, prop string, propValue string, remote bool) []ReadProp
+	UpdateProp(hosts []string, fileName string, prop string, propValue string, remote bool) error
 }
 
 var fileService = newFileImpl()
@@ -105,27 +106,25 @@ type ReadProp struct {
 }
 
 func searchLocalFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
-	user, err := user.Current()
-	home := ""
 	ret := make([]ReadProp, 0)
-	if err == nil {
-		home = user.HomeDir
+	home, err := getHome()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error get home: %s \n", err))
 	}
 	for _, host := range hosts {
 		viper := viper.New()
 		log.Debugf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName)
-		dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
-		viper.SetConfigFile(name)
+		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		viper.SetConfigFile(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		// viper.SetConfigFile(name)
 		// viper.SetConfigName("config")
-		viper.SetConfigType("ini")
-		viper.AddConfigPath(dir)
+		viper.SetConfigType("properties")
+		// viper.AddConfigPath(dir)
 		err := viper.ReadInConfig() // 查找并读取配置文件
 		if err != nil {             // 处理读取配置文件的错误
 			panic(fmt.Errorf("Fatal error config file: %s \n", err))
 		}
-		for _, key := range viper.AllKeys() {
-			log.Debug(key)
-		}
+		log.Debug(viper.Get(prop))
 		if strings.Contains(viper.GetString(prop), propValue) {
 			ret = append(ret, ReadProp{Host: host, Prop: prop, Value: viper.GetString(prop)})
 		}
@@ -135,4 +134,55 @@ func searchLocalFile(hosts []string, fileName string, prop string, propValue str
 
 func searchRemoteFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
 	return make([]ReadProp, 0)
+}
+
+func (f *fileImpl) UpdateProp(hosts []string, fileName string, prop string, propValue string, remote bool) error {
+	if remote {
+		return updateRemoteProp(hosts, fileName, prop, propValue)
+	} else {
+		return updateLocalProp(hosts, fileName, prop, propValue)
+	}
+}
+
+func updateLocalProp(hosts []string, fileName string, prop string, propValue string) error {
+	home, err := getHome()
+	if err != nil {
+		// panic(fmt.Errorf("Fatal error get home: %s \n", err))
+		return err
+	}
+	for _, host := range hosts {
+		viper := viper.New()
+		log.Debugf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName)
+		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		viper.SetConfigFile(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		// viper.SetConfigFile(name)
+		// viper.SetConfigName("config")
+		viper.SetConfigType("properties")
+		// viper.AddConfigPath(dir)
+		err := viper.ReadInConfig() // 查找并读取配置文件
+		if err != nil {             // 处理读取配置文件的错误
+			// panic(fmt.Errorf("Fatal error config file: %s \n", err))
+			return err
+		}
+		viper.Set(prop, propValue)
+		err = viper.WriteConfig()
+		if err != nil { // 处理写入配置文件的错误
+			// panic(fmt.Errorf("Fatal error config file: %s \n", err))
+			return err
+		}
+	}
+	return nil
+}
+
+func updateRemoteProp(hosts []string, fileName string, prop string, propValue string) error {
+	return nil
+}
+
+func getHome() (string, error) {
+	user, err := user.Current()
+	if err == nil {
+		return user.HomeDir, nil
+	} else {
+		return "", err
+	}
 }

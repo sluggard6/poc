@@ -17,12 +17,11 @@ var (
 	command    string
 )
 
-//Version 程序版本号
+// Version 程序版本号
 const Version = "0.0.1-snapshot"
 
 func main() {
 	log.SetLevel(log.TraceLevel)
-
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "usage: %s [-options] [command]\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Commands:\n")

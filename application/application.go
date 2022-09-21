@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	//_ "github.com/sluggard/myfile/statik" // TODO: Replace with the absolute import path
+	"github.com/rakyll/statik/fs"
+	_ "github.com/sluggard/poc/statik" // TODO: Replace with the absolute import path
 
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
@@ -98,6 +99,7 @@ func (s *HttpServer) _Init() error {
 	util.Hosts = make([]util.Host, 0)
 	for _, ip := range config.GetConfig().DevicesInfo.Hosts {
 		util.Hosts = append(util.Hosts, util.Host{Ip: ip, State: 1})
+
 	}
 	return nil
 }
@@ -109,6 +111,13 @@ func (s *HttpServer) RouteInit() {
 	app.Options("/*", controller.Cors)
 	// app.Party("/*", controller.Cors).AllowMethods(iris.MethodOptions)
 	app.UseGlobal(controller.Cors)
+	statikFS, err := fs.New()
+	if err == nil {
+		// app.Handle()
+		app.HandleDir(s.Config.Server.ContextPath+"/app", statikFS)
+	} else {
+		fmt.Printf("err: %v\n", err)
+	}
 	//app.Use(AuthRequired, sess.Handler())
 	// app.Use(sess.Handler())
 	// statikFS, err := fs.New()
