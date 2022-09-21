@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"strings"
 	"unsafe"
 
@@ -80,4 +81,13 @@ func Filter[T any, R any](slice []T, f func(T) bool, r func(T) R) []R {
 		}
 	}
 	return n
+}
+
+func GetHome() (string, error) {
+	user, err := user.Current()
+	if err == nil {
+		return user.HomeDir, nil
+	} else {
+		return "", err
+	}
 }

@@ -83,23 +83,25 @@ func (s *HttpServer) Stop() {
 
 func (s *HttpServer) _Init() error {
 	s.RouteInit()
-	go controller.NewHandlerController().GetScan(nil)
-	// 新建一个定时任务对象
-	// 根据cron表达式进行时间调度，cron可以精确到秒，大部分表达式格式也是从秒开始。
-	s.crontab = cron.New(cron.WithSeconds()) //精确到秒
-	// 定义定时器调用的任务函数
-	//定时任务
-	spec := "*/10 * * * *" //cron表达式，每五秒一次
-	task := func() {
-		//fmt.Println("hello world", time.Now())
-		go controller.NewHandlerController().GetScan(nil)
-	}
-	s.crontab.AddFunc(spec, task)
-	s.crontab.Start()
 	util.Hosts = make([]util.Host, 0)
 	for _, ip := range config.GetConfig().DevicesInfo.Hosts {
 		util.Hosts = append(util.Hosts, util.Host{Ip: ip, State: 1})
-
+		config.MakeDemoFile(ip)
+	}
+	if config.GetConfig().RunConfig.Remote {
+		go controller.NewHandlerController().GetScan(nil)
+		// 新建一个定时任务对象
+		// 根据cron表达式进行时间调度，cron可以精确到秒，大部分表达式格式也是从秒开始。
+		s.crontab = cron.New(cron.WithSeconds()) //精确到秒
+		// 定义定时器调用的任务函数
+		//定时任务
+		spec := "*/10 * * * *" //cron表达式，每五秒一次
+		task := func() {
+			//fmt.Println("hello world", time.Now())
+			go controller.NewHandlerController().GetScan(nil)
+		}
+		s.crontab.AddFunc(spec, task)
+		s.crontab.Start()
 	}
 	return nil
 }

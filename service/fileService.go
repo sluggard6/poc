@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -107,14 +106,14 @@ type ReadProp struct {
 
 func searchLocalFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
 	ret := make([]ReadProp, 0)
-	home, err := getHome()
+	home, err := util.GetHome()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error get home: %s \n", err))
 	}
 	for _, host := range hosts {
 		viper := viper.New()
 		log.Debugf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName)
-		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
 		viper.SetConfigFile(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
 		// viper.SetConfigFile(name)
 		// viper.SetConfigName("config")
@@ -133,12 +132,12 @@ func searchLocalFile(hosts []string, fileName string, prop string, propValue str
 }
 
 func (f *fileImpl) searchRemoteFile(hosts []string, fileName string, prop string, propValue string) []ReadProp {
-	home, err := getHome()
+	home, err := util.GetHome()
 	if err != nil {
 		panic(fmt.Errorf("Fatal error get home: %s \n", err))
 	}
 	for _, ip := range hosts {
-		dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName))
+		dir, name := filepath.Split(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName))
 		os.MkdirAll(dir, 0744)
 		cmd := fmt.Sprintf("sshpaas -p %s scp -rf %s@%s:%s %s", config.GetConfig().DevicesInfo.Password, config.GetConfig().DevicesInfo.Username, ip, fileName, dir+name)
 		f.cs.Run(cmd)
@@ -155,7 +154,7 @@ func (f *fileImpl) UpdateProp(hosts []string, fileName string, prop string, prop
 }
 
 func updateLocalProp(hosts []string, fileName string, prop string, propValue string) error {
-	home, err := getHome()
+	home, err := util.GetHome()
 	if err != nil {
 		// panic(fmt.Errorf("Fatal error get home: %s \n", err))
 		return err
@@ -163,7 +162,7 @@ func updateLocalProp(hosts []string, fileName string, prop string, propValue str
 	for _, host := range hosts {
 		viper := viper.New()
 		log.Debugf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName)
-		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+		// dir, name := filepath.Split(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
 		viper.SetConfigFile(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
 		// viper.SetConfigFile(name)
 		// viper.SetConfigName("config")
@@ -186,24 +185,15 @@ func updateLocalProp(hosts []string, fileName string, prop string, propValue str
 
 func (f *fileImpl) updateRemoteProp(hosts []string, fileName string, prop string, propValue string) error {
 	updateLocalProp(hosts, fileName, prop, propValue)
-	home, err := getHome()
+	home, err := util.GetHome()
 	if err != nil {
 		// panic(fmt.Errorf("Fatal error get home: %s \n", err))
 		return err
 	}
 	for _, ip := range hosts {
-		filePaht := fmt.Sprintf("%s%s.poe%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName)
+		filePaht := fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), ip, fileName)
 		cmd := fmt.Sprintf("sshpaas -p %s scp -rf %s %s@%s:%s", config.GetConfig().DevicesInfo.Password, filePaht, config.GetConfig().DevicesInfo.Username, ip, fileName)
 		f.cs.Run(cmd)
 	}
 	return nil
-}
-
-func getHome() (string, error) {
-	user, err := user.Current()
-	if err == nil {
-		return user.HomeDir, nil
-	} else {
-		return "", err
-	}
 }

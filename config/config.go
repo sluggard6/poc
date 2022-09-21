@@ -4,6 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/sluggard/poc/util"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -69,4 +74,24 @@ func LoadConfing(path string) Config {
 		}
 	}
 	return config
+}
+
+func MakeDemoFile(host string) {
+	home, err := util.GetHome()
+	log.Debug(home)
+	if err != nil {
+		return
+	}
+	fileName := "/root/config1.properties"
+	dir, name := filepath.Split(fmt.Sprintf("%s%s.poc%s.%s%s", home, string(filepath.Separator), string(filepath.Separator), host, fileName))
+	log.Debug(dir + name)
+	os.MkdirAll(dir, 0744)
+	viper := viper.New()
+	viper.Set("prop1", "abcdefg")
+	viper.Set("prop2", "hijklmn")
+	viper.WriteConfigAs(dir + name)
+	name = "config2.properties"
+	viper.Set("prop2", "abcdefg")
+	viper.Set("prop1", "hijklmn")
+	viper.WriteConfigAs(dir + name)
 }
