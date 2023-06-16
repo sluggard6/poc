@@ -1,8 +1,6 @@
 = 版本控制系统
 
 :toc:
-:toc-title: 目录
-:data-uri: {docdir}
 
 == 1.文档历史
 
@@ -39,7 +37,7 @@
 
 === 3.3 系统架构
 
-image::{docdir}/bus.png['abc', 800]
+image::{image}./bus.png[, 800]
 
 
 === 3.4 架构说明
